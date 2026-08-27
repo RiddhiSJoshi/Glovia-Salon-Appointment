@@ -1,15 +1,17 @@
 from pydantic import (
     BaseModel,
     ConfigDict,
-    EmailStr,
     Field,
     model_validator,
 )
 
 
-class SignupRequest(BaseModel):
+class RegisterRequest(BaseModel):
 
-    username: EmailStr
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+    )
 
     firstname: str = Field(
         min_length=2,
@@ -32,7 +34,7 @@ class SignupRequest(BaseModel):
     )
 
     @model_validator(mode="after")
-    def validate_passwords(self):
+    def validate_password(self):
 
         if self.password != self.confirmpassword:
             raise ValueError(
@@ -44,7 +46,10 @@ class SignupRequest(BaseModel):
 
 class LoginRequest(BaseModel):
 
-    username: EmailStr
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+    )
 
     password: str = Field(
         min_length=1,
@@ -52,10 +57,31 @@ class LoginRequest(BaseModel):
     )
 
 
+class RefreshTokenRequest(BaseModel):
+
+    refresh_token: str = Field(
+        min_length=1,
+    )
+
+
+class TokenResponse(BaseModel):
+
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+
+
+class LogoutRequest(BaseModel):
+
+    refresh_token: str = Field(
+        min_length=1,
+    )
+
+
 class UserResponse(BaseModel):
 
     id: int
-    username: EmailStr
+    username: str
     firstname: str
     lastname: str
     role: str
@@ -64,41 +90,3 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
-
-
-class TokenResponse(BaseModel):
-
-    access_token: str
-    refresh_token: str
-
-    token_type: str = "bearer"
-
-
-class ForgotPasswordRequest(BaseModel):
-
-    username: EmailStr
-
-
-class ResetPasswordRequest(BaseModel):
-
-    token: str
-
-    password: str = Field(
-        min_length=8,
-        max_length=128,
-    )
-
-    confirmpassword: str = Field(
-        min_length=8,
-        max_length=128,
-    )
-
-    @model_validator(mode="after")
-    def validate_passwords(self):
-
-        if self.password != self.confirmpassword:
-            raise ValueError(
-                "Password and confirm password do not match"
-            )
-
-        return self

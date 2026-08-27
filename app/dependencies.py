@@ -1,13 +1,12 @@
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
-
 import jwt
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.database import get_db
 from app.models.user import User, UserRole
+from app.repositories.auth_repo import AuthRepository
 
 
 bearer_scheme = HTTPBearer()
@@ -18,7 +17,7 @@ async def get_current_user(
         bearer_scheme
     ),
     db: AsyncSession = Depends(get_db),
-):
+) -> User:
 
     token = credentials.credentials
 
@@ -31,65 +30,78 @@ async def get_current_user(
         )
 
         if payload.get("type") != "access":
+
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid access token",
             )
 
         user_id = payload.get("sub")
 
         if not user_id:
+
             raise HTTPException(
-                status_code=401,
+                status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid access token",
             )
+
+        user_id = int(user_id)
 
     except jwt.ExpiredSignatureError:
 
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Access token has expired",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
-    except jwt.InvalidTokenError:
+    except (
+        jwt.InvalidTokenError,
+        ValueError,
+    ):
 
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",
+            headers={
+                "WWW-Authenticate": "Bearer"
+            },
         )
 
-    result = await db.execute(
-        select(User).where(
-            User.id == int(user_id)
-        )
+    repository = AuthRepository(db)
+
+    user = await repository.get_user_by_id(
+        user_id
     )
-
-    user = result.scalar_one_or_none()
 
     if not user:
 
         raise HTTPException(
-            status_code=401,
+            status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
 
     if not user.is_active:
 
         raise HTTPException(
-            status_code=403,
+            status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
 
     return user
 
 
-def require_role(*allowed_roles):
+def require_roles(
+    *allowed_roles: UserRole,
+):
 
     async def role_checker(
         current_user: User = Depends(
             get_current_user
         ),
-    ):
+    ) -> User:
 
         if current_user.role not in allowed_roles:
 

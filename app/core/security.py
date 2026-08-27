@@ -1,5 +1,6 @@
-from datetime import datetime, timedelta, timezone
+import hashlib
 import secrets
+from datetime import datetime, timedelta, timezone
 
 import jwt
 from pwdlib import PasswordHash
@@ -11,7 +12,6 @@ password_hash = PasswordHash.recommended()
 
 
 def hash_password(password: str) -> str:
-
     return password_hash.hash(password)
 
 
@@ -19,7 +19,6 @@ def verify_password(
     password: str,
     hashed_password: str,
 ) -> bool:
-
     return password_hash.verify(
         password,
         hashed_password,
@@ -31,7 +30,7 @@ def create_access_token(
     role: str,
 ) -> str:
 
-    expires = (
+    expires_at = (
         datetime.now(timezone.utc)
         + timedelta(
             minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
@@ -42,7 +41,7 @@ def create_access_token(
         "sub": str(user_id),
         "role": role,
         "type": "access",
-        "exp": expires,
+        "exp": expires_at,
     }
 
     return jwt.encode(
@@ -57,6 +56,8 @@ def create_refresh_token() -> str:
     return secrets.token_urlsafe(64)
 
 
-def create_password_reset_token() -> str:
+def hash_refresh_token(token: str) -> str:
 
-    return secrets.token_urlsafe(64)
+    return hashlib.sha256(
+        token.encode("utf-8")
+    ).hexdigest()
