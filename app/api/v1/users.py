@@ -5,7 +5,6 @@ from app.models.user import User, UserRole
 
 
 router = APIRouter(
-    prefix="/api/v1/users",
     tags=["Users"],
 )
 
