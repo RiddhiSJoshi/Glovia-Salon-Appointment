@@ -28,7 +28,6 @@ class Salon(Base):
     __tablename__ = "salons"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
         index=True,
     )
@@ -129,7 +128,6 @@ class Category(Base):
     __tablename__ = "categories"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -170,7 +168,6 @@ class Service(Base):
     __tablename__ = "services"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -226,7 +223,6 @@ class Staff(Base):
     __tablename__ = "staff"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -272,7 +268,6 @@ class WorkingHour(Base):
     __tablename__ = "working_hours"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -283,7 +278,6 @@ class WorkingHour(Base):
     )
 
     day_of_week: Mapped[int] = mapped_column(
-        Integer,
         nullable=False,
     )
 
@@ -313,7 +307,6 @@ class StaffLeave(Base):
     __tablename__ = "staff_leaves"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -338,7 +331,6 @@ class Appointment(Base):
     __tablename__ = "appointments"
 
     id: Mapped[int] = mapped_column(
-        Integer,
         primary_key=True,
     )
 
@@ -384,4 +376,32 @@ class Appointment(Base):
         DateTime,
         default=datetime.utcnow,
         nullable=False,
+    )
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    id: Mapped[int] = mapped_column(
+        primary_key=True,
+        index=True,
+    )
+
+    customer_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+    )
+
+    salon_id: Mapped[int] = mapped_column(
+        ForeignKey("salons.id"),
+        nullable=False,
+    )
+
+    rating: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+
+    comment: Mapped[str | None] = mapped_column(
+        String(1000),
+        nullable=True,
     )

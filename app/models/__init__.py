@@ -1,7 +1,7 @@
-from app.models.user import User
+from app.models.user_model import User
 from app.models.refresh_tokens import RefreshToken
 
-from app.models.salon import (
+from app.models.salon_model import (
     Salon,
     Category,
     Service,

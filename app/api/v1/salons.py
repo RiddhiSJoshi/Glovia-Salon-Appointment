@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.models.user import User
-from app.schemas.salon import (
+from app.models.user_model import User
+from app.schemas.salon_schema import (
     SalonCreate,
     SalonUpdate,
     SalonResponse,

@@ -5,12 +5,13 @@ from datetime import datetime, timedelta, timezone
 import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy.ext.asyncio import AsyncSession
 from pwdlib import PasswordHash
-from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.core.config import settings
 from app.db.database import get_db
-from app.models.user import User
+from app.models.user_model import User
 
 
 password_hash = PasswordHash.recommended()
@@ -84,9 +85,9 @@ def hash_refresh_token(token: str) -> str:
 # Get Current User
 # --------------------------------------------------
 
-def get_current_user(
+async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: Session = Depends(get_db),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
 
     token = credentials.credentials
@@ -97,27 +98,23 @@ def get_current_user(
             settings.SECRET_KEY,
             algorithms=[settings.ALGORITHM],
         )
-
     except jwt.ExpiredSignatureError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Access token has expired",
         )
-
     except jwt.InvalidTokenError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",
         )
 
-    # Check token type
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token type",
+            detail="Invalid access token",
         )
 
-    # Get user ID
     user_id = payload.get("sub")
 
     if not user_id:
@@ -126,24 +123,42 @@ def get_current_user(
             detail="Invalid token payload",
         )
 
-    # Find user
-    user = (
-        db.query(User)
-        .filter(User.id == int(user_id))
-        .first()
+    try:
+        user_id = int(user_id)
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID",
+        )
+
+    result = await db.execute(
+        select(User).where(User.id == user_id)
     )
 
-    if not user:
+    user = result.scalar_one_or_none()
+
+    if user is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
 
-    # Check active status
-    if hasattr(user, "is_active") and not user.is_active:
+    if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="User account is inactive",
         )
 
     return user
+
+async def get_current_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+
+    if current_user.role.value != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+    return current_user

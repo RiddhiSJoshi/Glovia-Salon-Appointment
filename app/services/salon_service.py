@@ -2,7 +2,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.salon import (
+from app.models.salon_model import (
     Salon,
     Category,
     Service,
@@ -11,7 +11,7 @@ from app.models.salon import (
     StaffLeave,
 )
 from app.repositories.salon_repo import SalonRepository
-from app.schemas.salon import (
+from app.schemas.salon_schema import (
     SalonCreate,
     SalonUpdate,
     CategoryCreate,

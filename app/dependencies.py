@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.database import get_db
-from app.models.user import User, UserRole
+from app.models.user_model import User, UserRole
 from app.repositories.auth_repo import AuthRepository
 
 
@@ -113,3 +113,5 @@ def require_roles(
         return current_user
 
     return role_checker
+
+get_salon_owner = require_roles(UserRole.SALON)

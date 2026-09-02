@@ -5,9 +5,9 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.models.user import User, UserRole
+from app.models.user_model import User, UserRole
 from app.repositories.auth_repo import AuthRepository
-from app.schemas.auth import RegisterRequest
+from app.schemas.auth_schema import RegisterRequest
 
 
 class AuthService:

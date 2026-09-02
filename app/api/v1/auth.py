@@ -15,8 +15,8 @@ from app.core.security import (
 from app.db.database import get_db
 from app.dependencies import get_current_user
 from app.models.refresh_tokens import RefreshToken
-from app.models.user import User
-from app.schemas.auth import (
+from app.models.user_model import User
+from app.schemas.auth_schema import (
     LoginRequest,
     LogoutRequest,
     RefreshTokenRequest,

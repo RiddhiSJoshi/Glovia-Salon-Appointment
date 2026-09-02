@@ -1,7 +1,7 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.salon import (
+from app.models.salon_model import (
     Salon,
     Category,
     Service,
