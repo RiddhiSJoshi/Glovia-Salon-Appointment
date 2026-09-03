@@ -70,6 +70,7 @@ class User(Base):
     )
 
     appointments = relationship(
-    "Appointment",
-    back_populates="customer",
+        "Appointment",
+        foreign_keys="Appointment.customer_id",
+        back_populates="customer",
     )

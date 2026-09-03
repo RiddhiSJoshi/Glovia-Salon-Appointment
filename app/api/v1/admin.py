@@ -11,6 +11,7 @@ from app.schemas.admin_schema import (
     AdminStatsResponse,
     AdminUserResponse,
     AdminUserUpdate,
+    SalonOwnerCreate
 )
 from app.services.admin_service import AdminService
 from app.core.security import get_current_admin
@@ -99,3 +100,18 @@ async def get_statistics(
 ):
 
     return await AdminService.get_statistics(db)
+
+@router.post(
+    "/salon-owners",
+    response_model=AdminUserResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_salon_owner(
+    data: SalonOwnerCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_admin),
+):
+    return await AdminService.create_salon_owner(
+        db,
+        data,
+    )

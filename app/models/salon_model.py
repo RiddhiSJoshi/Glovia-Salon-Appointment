@@ -404,10 +404,29 @@ class Appointment(Base):
         default=datetime.utcnow,
         nullable=False,
     )
-    customer = relationship("User", backref="appointments")
-    salon = relationship("Salon", backref="appointments")
-    staff = relationship("Staff", backref="appointments")
-    service = relationship("Service", backref="appointments")
+    customer = relationship(
+        "User",
+        foreign_keys=[customer_id],
+        back_populates="appointments",
+    )
+
+    salon = relationship(
+        "Salon",
+        foreign_keys=[salon_id],
+        back_populates="appointments",
+    )
+
+    staff = relationship(
+        "Staff",
+        foreign_keys=[staff_id],
+        back_populates="appointments",
+    )
+
+    service = relationship(
+        "Service",
+        foreign_keys=[service_id],
+        back_populates="appointments",
+    )
 
 class Review(Base):
     __tablename__ = "reviews"

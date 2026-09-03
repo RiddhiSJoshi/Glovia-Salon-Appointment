@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class AdminUserResponse(BaseModel):
@@ -35,3 +35,42 @@ class AdminStatsResponse(BaseModel):
 
 class MessageResponse(BaseModel):
     message: str
+
+
+
+class SalonOwnerCreate(BaseModel):
+
+    username: str = Field(
+        min_length=3,
+        max_length=100,
+    )
+
+    firstname: str = Field(
+        min_length=2,
+        max_length=50,
+    )
+
+    lastname: str = Field(
+        min_length=2,
+        max_length=50,
+    )
+
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+    confirmpassword: str = Field(
+        min_length=8,
+        max_length=128,
+    )
+
+    @model_validator(mode="after")
+    def validate_password(self):
+
+        if self.password != self.confirmpassword:
+            raise ValueError(
+                "Password and confirm password do not match"
+            )
+
+        return self

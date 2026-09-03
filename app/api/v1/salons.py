@@ -12,8 +12,8 @@ from app.schemas.salon_schema import (
     CategoryResponse
 )
 from app.services.salon_service import SalonService
-from app.core.security import get_current_user
-from app.dependencies import get_salon_owner
+# from app.core.security import get_current_user
+from app.dependencies import get_salon_owner, get_current_user
 
 
 router = APIRouter(
@@ -43,10 +43,11 @@ async def create_salon(
             data=data,
         )
 
-        return {
-            "message": "Salon created successfully!",
-            "salon": salon
-        }
+        return salon
+        # return {
+        #     "message": "Salon created successfully!",
+        #     "salon": salon
+        # }
 
     except HTTPException:
         raise
@@ -58,9 +59,10 @@ async def create_salon(
         )
 
     except Exception:
+        print("CREATE SALON ERROR:", repr(exc))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create salon.",
+            detail=str(exc),
         )
 
 
@@ -70,7 +72,7 @@ async def create_salon(
     status_code=status.HTTP_200_OK,
 )
 async def get_my_salon(
-    current_user=Depends(get_salon_owner),
+    current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -78,11 +80,14 @@ async def get_my_salon(
     """
 
     try:
+        print("CURRENT USER:", current_user)
+        print("CURRENT USER ID:", current_user.id)
         service = SalonService(db)
 
-        salon = await service.get_salon_by_owner(
+        salon = await service.get_my_salon(
             owner_id=current_user.id
         )
+        print("SALON RESULT:", salon)
 
         if not salon:
             raise HTTPException(
@@ -98,7 +103,7 @@ async def get_my_salon(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve salon.",
+            detail=f"Failed to retrieve salon: {str(exc)}",
         )
 
 
@@ -120,7 +125,7 @@ async def get_salon(
     try:
         service = SalonService(db)
 
-        salon = await service.get_salon(salon_id)
+        salon = await service.get_my_salon(salon_id)
 
         if not salon:
             raise HTTPException(

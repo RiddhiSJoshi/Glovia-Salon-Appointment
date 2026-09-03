@@ -1,9 +1,14 @@
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.user_model import User
+from app.core.security import hash_password
+from app.models.user_model import User, UserRole
 from app.repositories.admin_repo import AdminRepository
-from app.schemas.admin_schema import AdminUserUpdate
+from app.schemas.admin_schema import (
+    AdminUserUpdate,
+    SalonOwnerCreate,
+)
 
 
 class AdminService:
@@ -12,7 +17,6 @@ class AdminService:
     async def get_users(
         db: AsyncSession,
     ):
-
         return await AdminRepository.get_users(db)
 
     @staticmethod
@@ -20,7 +24,6 @@ class AdminService:
         db: AsyncSession,
         user_id: int,
     ):
-
         user = await AdminRepository.get_user_by_id(
             db,
             user_id,
@@ -34,23 +37,63 @@ class AdminService:
 
         return user
 
+    # ---------------------------------------------------------
+    # CREATE SALON OWNER
+    # ---------------------------------------------------------
+
+    @staticmethod
+    async def create_salon_owner(
+        db: AsyncSession,
+        data: SalonOwnerCreate,
+    ):
+        username = data.username.strip().lower()
+
+        # Check whether username already exists
+        existing_user = await AdminRepository.get_user_by_username(
+            db,
+            username,
+        )
+
+        if existing_user:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Username is already registered",
+            )
+
+        user = User(
+            username=username,
+            firstname=data.firstname.strip(),
+            lastname=data.lastname.strip(),
+            password_hash=hash_password(data.password),
+            role=UserRole.SALON,
+            is_active=True,
+        )
+
+        return await AdminRepository.create_user(
+            db,
+            user,
+        )
+
+    # ---------------------------------------------------------
+    # UPDATE USER
+    # ---------------------------------------------------------
+
     @staticmethod
     async def update_user(
         db: AsyncSession,
         user_id: int,
         data: AdminUserUpdate,
     ):
-
         user = await AdminService.get_user(
             db,
             user_id,
         )
 
         if data.firstname is not None:
-            user.firstname = data.firstname
+            user.firstname = data.firstname.strip()
 
         if data.lastname is not None:
-            user.lastname = data.lastname
+            user.lastname = data.lastname.strip()
 
         if data.is_active is not None:
             user.is_active = data.is_active
@@ -58,30 +101,41 @@ class AdminService:
         if data.role is not None:
 
             allowed_roles = {
-                "customer",
-                "salon",
-                "admin",
+                UserRole.CUSTOMER,
+                UserRole.SALON,
+                UserRole.ADMIN,
             }
 
-            if data.role not in allowed_roles:
+            try:
+                new_role = UserRole(data.role.lower())
+            except ValueError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid role. Allowed roles: customer, salon, admin",
+                )
+
+            if new_role not in allowed_roles:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid role",
                 )
 
-            user.role = data.role
+            user.role = new_role
 
         return await AdminRepository.update_user(
             db,
             user,
         )
 
+    # ---------------------------------------------------------
+    # DELETE USER
+    # ---------------------------------------------------------
+
     @staticmethod
     async def delete_user(
         db: AsyncSession,
         user_id: int,
     ):
-
         user = await AdminService.get_user(
             db,
             user_id,
@@ -92,11 +146,14 @@ class AdminService:
             user,
         )
 
+    # ---------------------------------------------------------
+    # STATISTICS
+    # ---------------------------------------------------------
+
     @staticmethod
     async def get_statistics(
         db: AsyncSession,
     ):
-
         return {
             "total_users":
                 await AdminRepository.count_users(db),
@@ -125,3 +182,4 @@ class AdminService:
             "total_reviews":
                 await AdminRepository.count_reviews(db),
         }
+
