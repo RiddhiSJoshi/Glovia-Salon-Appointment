@@ -5,6 +5,11 @@ from app.api.v1 import (
     admin,
     auth,
     users,
+    services,
+    staff, 
+    availability,
+    reviews,
+    appointments
 )
 from app.api.v1.salons import router as salon_router
 from app.core.config import settings
@@ -47,9 +52,43 @@ app.include_router(
 app.include_router(
     salon_router,
     prefix="/api/v1/salon",
-    tags=["Salon"],
+    tags=["Salon Management"],
 )
 
+# Services
+app.include_router(
+    services.router,
+    prefix="/api/v1/salon",
+    tags=["Salon Services"],
+)
+
+# Staff
+app.include_router(
+    staff.router,
+    prefix="/salons/{salon_id}/staff",
+    tags=["Salon Staff"],
+)
+
+# Reviews
+app.include_router(
+    reviews.router,
+    prefix="/reviews",
+    tags=["Reviews"],
+)
+
+# Availabily
+app.include_router(
+    availability.router,
+    prefix="/availability",
+    tags=["Salon Availability"],
+)
+
+# Appointment
+app.include_router(
+    appointments.router,
+    prefix="/appointments",
+    tags=["Appointments"],
+)
 
 # Users
 app.include_router(

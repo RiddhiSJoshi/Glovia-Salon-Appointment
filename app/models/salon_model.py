@@ -1,4 +1,4 @@
-from datetime import datetime, time
+from datetime import datetime, time, date
 from decimal import Decimal
 from enum import Enum
 
@@ -11,7 +11,10 @@ from sqlalchemy import (
     String,
     Text,
     Time,
+    UniqueConstraint
+
 )
+
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -123,6 +126,12 @@ class Salon(Base):
         cascade="all, delete-orphan",
     )
 
+    appointments = relationship(
+        "Appointment",
+        back_populates="salon",
+        cascade="all, delete-orphan",
+    )
+
 
 class Category(Base):
     __tablename__ = "categories"
@@ -218,6 +227,11 @@ class Service(Base):
         back_populates="services",
     )
 
+    appointments = relationship(
+        "Appointment",
+        back_populates="service",
+    )
+
 
 class Staff(Base):
     __tablename__ = "staff"
@@ -260,6 +274,11 @@ class Staff(Base):
 
     salon = relationship(
         "Salon",
+        back_populates="staff",
+    )
+
+    appointments = relationship(
+        "Appointment",
         back_populates="staff",
     )
 
@@ -316,7 +335,7 @@ class StaffLeave(Base):
         index=True,
     )
 
-    leave_date: Mapped[datetime] = mapped_column(
+    leave_date: Mapped[date] = mapped_column(
         DateTime,
         nullable=False,
     )
@@ -329,6 +348,14 @@ class StaffLeave(Base):
 
 class Appointment(Base):
     __tablename__ = "appointments"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "customer_id",
+            "salon_id",
+            name="uq_review_customer_salon",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(
         primary_key=True,
@@ -377,6 +404,10 @@ class Appointment(Base):
         default=datetime.utcnow,
         nullable=False,
     )
+    customer = relationship("User", backref="appointments")
+    salon = relationship("Salon", backref="appointments")
+    staff = relationship("Staff", backref="appointments")
+    service = relationship("Service", backref="appointments")
 
 class Review(Base):
     __tablename__ = "reviews"

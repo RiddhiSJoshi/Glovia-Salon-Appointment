@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, HTTPException, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
@@ -9,17 +9,7 @@ from app.schemas.salon_schema import (
     SalonResponse,
     CategoryCreate,
     CategoryUpdate,
-    CategoryResponse,
-    ServiceCreate,
-    ServiceUpdate,
-    ServiceResponse,
-    StaffCreate,
-    StaffUpdate,
-    StaffResponse,
-    WorkingHourCreate,
-    WorkingHourResponse,
-    StaffLeaveCreate,
-    StaffLeaveResponse,
+    CategoryResponse
 )
 from app.services.salon_service import SalonService
 from app.core.security import get_current_user
@@ -31,10 +21,6 @@ router = APIRouter(
 )
 
 
-# =====================================================
-# SALON
-# =====================================================
-
 @router.post(
     "/",
     response_model=SalonResponse,
@@ -42,62 +28,222 @@ router = APIRouter(
 )
 async def create_salon(
     data: SalonCreate,
-    current_user: User = Depends(get_salon_owner),
     db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    service = SalonService(db)
+    """
+    Create a salon for the authenticated salon owner.
+    """
 
-    return await service.create_salon(
-        current_user.id,
-        data,
-    )
+    try:
+        service = SalonService(db)
+
+        salon = await service.create_salon(
+            owner_id=current_user.id,
+            data=data,
+        )
+
+        return {
+            "message": "Salon created successfully!",
+            "salon": salon
+        }
+
+    except HTTPException:
+        raise
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to create salon.",
+        )
 
 
 @router.get(
-    "/me",
+    "/",
     response_model=SalonResponse,
+    status_code=status.HTTP_200_OK,
 )
 async def get_my_salon(
-    current_user: User = Depends(get_salon_owner),
+    current_user=Depends(get_salon_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    service = SalonService(db)
+    """
+    Get the salon belonging to the authenticated salon owner.
+    """
 
-    return await service.get_my_salon(
-        current_user.id
-    )
+    try:
+        service = SalonService(db)
+
+        salon = await service.get_salon_by_owner(
+            owner_id=current_user.id
+        )
+
+        if not salon:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Salon not found for the current owner.",
+            )
+
+        return salon
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve salon.",
+        )
 
 
-@router.patch(
-    "/me",
+
+@router.get(
+    "/{salon_id}",
     response_model=SalonResponse,
+    status_code=status.HTTP_200_OK,
 )
-async def update_my_salon(
-    data: SalonUpdate,
-    current_user: User = Depends(get_salon_owner),
+async def get_salon(
+    salon_id: int = Path(..., gt=0),
     db: AsyncSession = Depends(get_db),
 ):
-    service = SalonService(db)
+    """
+    Public endpoint.
+    Customers can view salon information.
+    """
 
-    return await service.update_salon(
-        current_user.id,
-        data,
-    )
+    try:
+        service = SalonService(db)
+
+        salon = await service.get_salon(salon_id)
+
+        if not salon:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Salon not found.",
+            )
+
+        return salon
+
+    except HTTPException:
+        raise
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to retrieve salon.",
+        )
+
+
+@router.put(
+    "/{salon_id}",
+    response_model=SalonResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_salon(
+    data: SalonUpdate,
+    salon_id: int = Path(..., gt=0),
+    current_user=Depends(get_salon_owner),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Update salon information.
+
+    Only the owner of the salon can update it.
+    """
+
+    try:
+        service = SalonService(db)
+
+        salon = await service.update_salon(
+            salon_id=salon_id,
+            owner_id=current_user.id,
+            data=data,
+        )
+
+        if not salon:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Salon not found.",
+            )
+
+        return {
+            "message": "Salon updated successfully!",
+            "salon": salon
+        }
+
+    except HTTPException:
+        raise
+
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this salon.",
+        )
+
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to update salon.",
+        )
 
 
 @router.delete(
-    "/me",
+    "/{salon_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
-async def delete_my_salon(
-    current_user: User = Depends(get_salon_owner),
+async def delete_salon(
+    salon_id: int = Path(..., gt=0),
+    current_user=Depends(get_salon_owner),
     db: AsyncSession = Depends(get_db),
 ):
-    service = SalonService(db)
+    """
+    Delete/deactivate salon.
+    """
 
-    await service.delete_salon(
-        current_user.id
-    )
+    try:
+        service = SalonService(db)
+
+        deleted = await service.delete_salon(
+            salon_id=salon_id,
+            owner_id=current_user.id,
+        )
+
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Salon not found.",
+            )
+
+        return {
+            "message": "Salon deleted successfully!"
+        }
+
+    except HTTPException:
+        raise
+
+    except PermissionError:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this salon.",
+        )
+
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to delete salon.",
+        )
 
 
 # =====================================================
@@ -105,7 +251,7 @@ async def delete_my_salon(
 # =====================================================
 
 @router.post(
-    "/me/categories",
+    "/{salon_id}/categories",
     response_model=CategoryResponse,
     status_code=status.HTTP_201_CREATED,
 )
@@ -116,14 +262,17 @@ async def create_category(
 ):
     service = SalonService(db)
 
-    return await service.create_category(
+    await service.create_category(
         current_user.id,
         data,
     )
+    return {
+        "message": "Category created successfully!"
+    }
 
 
 @router.get(
-    "/me/categories",
+    "/{salon_id}/categories",
     response_model=list[CategoryResponse],
 )
 async def get_categories(
@@ -132,13 +281,16 @@ async def get_categories(
 ):
     service = SalonService(db)
 
-    return await service.get_categories(
+    await service.get_categories(
         current_user.id
     )
+    return {
+        "message": "Categories fetched successfully!"
+    }
 
 
-@router.patch(
-    "/me/categories/{category_id}",
+@router.put(
+    "/{salon_id}/categories/{category_id}",
     response_model=CategoryResponse,
 )
 async def update_category(
@@ -149,15 +301,19 @@ async def update_category(
 ):
     service = SalonService(db)
 
-    return await service.update_category(
+    await service.update_category(
         current_user.id,
         category_id,
         data,
     )
 
+    return {
+        "message": "Category updated successfully!"
+    }
+
 
 @router.delete(
-    "/me/categories/{category_id}",
+    "/{salon_id}/categories/{category_id}",
     status_code=status.HTTP_204_NO_CONTENT,
 )
 async def delete_category(
@@ -171,227 +327,6 @@ async def delete_category(
         current_user.id,
         category_id,
     )
-
-
-# =====================================================
-# SERVICES
-# =====================================================
-
-@router.post(
-    "/me/services",
-    response_model=ServiceResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_service(
-    data: ServiceCreate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.create_service(
-        current_user.id,
-        data,
-    )
-
-
-@router.get(
-    "/me/services",
-    response_model=list[ServiceResponse],
-)
-async def get_services(
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.get_services(
-        current_user.id
-    )
-
-
-@router.patch(
-    "/me/services/{service_id}",
-    response_model=ServiceResponse,
-)
-async def update_service(
-    service_id: int,
-    data: ServiceUpdate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.update_service(
-        current_user.id,
-        service_id,
-        data,
-    )
-
-
-@router.delete(
-    "/me/services/{service_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def delete_service(
-    service_id: int,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    await service.delete_service(
-        current_user.id,
-        service_id,
-    )
-
-
-# =====================================================
-# STAFF
-# =====================================================
-
-@router.post(
-    "/me/staff",
-    response_model=StaffResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_staff(
-    data: StaffCreate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.create_staff(
-        current_user.id,
-        data,
-    )
-
-
-@router.get(
-    "/me/staff",
-    response_model=list[StaffResponse],
-)
-async def get_staff(
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.get_staff(
-        current_user.id
-    )
-
-
-@router.patch(
-    "/me/staff/{staff_id}",
-    response_model=StaffResponse,
-)
-async def update_staff(
-    staff_id: int,
-    data: StaffUpdate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.update_staff(
-        current_user.id,
-        staff_id,
-        data,
-    )
-
-
-@router.delete(
-    "/me/staff/{staff_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-)
-async def delete_staff(
-    staff_id: int,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    await service.delete_staff(
-        current_user.id,
-        staff_id,
-    )
-
-
-# =====================================================
-# WORKING HOURS
-# =====================================================
-
-@router.post(
-    "/me/working-hours",
-    response_model=WorkingHourResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_working_hour(
-    data: WorkingHourCreate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.create_working_hour(
-        current_user.id,
-        data,
-    )
-
-
-@router.get(
-    "/me/working-hours",
-    response_model=list[WorkingHourResponse],
-)
-async def get_working_hours(
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.get_working_hours(
-        current_user.id
-    )
-
-
-# =====================================================
-# STAFF LEAVE
-# =====================================================
-
-@router.post(
-    "/me/staff/{staff_id}/leave",
-    response_model=StaffLeaveResponse,
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_staff_leave(
-    staff_id: int,
-    data: StaffLeaveCreate,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.create_staff_leave(
-        current_user.id,
-        staff_id,
-        data,
-    )
-
-
-@router.get(
-    "/me/staff/{staff_id}/leave",
-    response_model=list[StaffLeaveResponse],
-)
-async def get_staff_leave(
-    staff_id: int,
-    current_user: User = Depends(get_salon_owner),
-    db: AsyncSession = Depends(get_db),
-):
-    service = SalonService(db)
-
-    return await service.get_staff_leaves(
-        current_user.id,
-        staff_id,
-    )
+    return {
+        "message": "Category deleted successfully!"
+    }
