@@ -60,15 +60,11 @@ async def update_user(
     db: AsyncSession = Depends(get_db),
     current_admin: User = Depends(get_current_admin),
 ):
-    await AdminService.update_user(
-        db,
-        user_id,
-        data,
-    )
-
-    return {
-        "message": "User updated successfully!"
-    }
+    return await AdminService.update_user(
+            db,
+            user_id,
+            data,
+        )
 
 @router.delete(
     "/users/{user_id}",
@@ -85,9 +81,7 @@ async def delete_user(
         user_id,
     )
 
-    return {
-        "message": "User deleted successfully!"
-    }
+    return None
 
 @router.get(
     "/statistics",

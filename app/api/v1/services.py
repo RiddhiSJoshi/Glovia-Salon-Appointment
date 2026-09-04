@@ -1,4 +1,3 @@
-
 from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -36,7 +35,6 @@ async def create_service(
     service = ServicesService(db)
 
     return await service.create_service(
-        salon_id=salon_id,
         owner_id=current_user.id,
         data=data,
     )
@@ -59,7 +57,6 @@ async def get_services(
     service = ServicesService(db)
 
     return await service.get_services(
-        salon_id=salon_id,
         owner_id=current_user.id,
     )
 
@@ -83,9 +80,8 @@ async def update_service(
     service = ServicesService(db)
 
     return await service.update_service(
-        salon_id=salon_id,
-        service_id=service_id,
         owner_id=current_user.id,
+        service_id=service_id,
         data=data,
     )
 
@@ -107,10 +103,8 @@ async def delete_service(
     service = ServicesService(db)
 
     await service.delete_service(
-        salon_id=salon_id,
-        service_id=service_id,
         owner_id=current_user.id,
+        service_id=service_id,
     )
 
     return None
-

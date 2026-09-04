@@ -44,10 +44,6 @@ async def create_salon(
         )
 
         return salon
-        # return {
-        #     "message": "Salon created successfully!",
-        #     "salon": salon
-        # }
 
     except HTTPException:
         raise
@@ -59,7 +55,6 @@ async def create_salon(
         )
 
     except Exception:
-        print("CREATE SALON ERROR:", repr(exc))
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(exc),
@@ -80,8 +75,6 @@ async def get_my_salon(
     """
 
     try:
-        print("CURRENT USER:", current_user)
-        print("CURRENT USER ID:", current_user.id)
         service = SalonService(db)
 
         salon = await service.get_my_salon(
@@ -103,7 +96,7 @@ async def get_my_salon(
     except Exception:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve salon: {str(exc)}",
+            detail=f"Failed to retrieve salon",
         )
 
 
@@ -177,10 +170,7 @@ async def update_salon(
                 detail="Salon not found.",
             )
 
-        return {
-            "message": "Salon updated successfully!",
-            "salon": salon
-        }
+        return salon
 
     except HTTPException:
         raise
@@ -231,9 +221,7 @@ async def delete_salon(
                 detail="Salon not found.",
             )
 
-        return {
-            "message": "Salon deleted successfully!"
-        }
+        return None
 
     except HTTPException:
         raise
@@ -267,13 +255,10 @@ async def create_category(
 ):
     service = SalonService(db)
 
-    await service.create_category(
-        current_user.id,
-        data,
-    )
-    return {
-        "message": "Category created successfully!"
-    }
+    return await service.create_category(
+                current_user.id,
+                data,
+            )
 
 
 @router.get(
@@ -286,12 +271,10 @@ async def get_categories(
 ):
     service = SalonService(db)
 
-    await service.get_categories(
-        current_user.id
-    )
-    return {
-        "message": "Categories fetched successfully!"
-    }
+    
+    return await service.get_categories(
+                current_user.id
+            )
 
 
 @router.put(
@@ -306,15 +289,13 @@ async def update_category(
 ):
     service = SalonService(db)
 
-    await service.update_category(
-        current_user.id,
-        category_id,
-        data,
-    )
+    
 
-    return {
-        "message": "Category updated successfully!"
-    }
+    return await service.update_category(
+                current_user.id,
+                category_id,
+                data,
+            )
 
 
 @router.delete(
@@ -332,6 +313,4 @@ async def delete_category(
         current_user.id,
         category_id,
     )
-    return {
-        "message": "Category deleted successfully!"
-    }
+    return None

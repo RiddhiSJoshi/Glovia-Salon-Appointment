@@ -65,28 +65,28 @@ app.include_router(
 # Staff
 app.include_router(
     staff.router,
-    prefix="/salons/{salon_id}/staff",
+    prefix="/api/v1/salon/{salon_id}/staff",
     tags=["Salon Staff"],
 )
 
 # Reviews
 app.include_router(
     reviews.router,
-    prefix="/reviews",
+    prefix="/api/v1/reviews",
     tags=["Reviews"],
 )
 
 # Availabily
 app.include_router(
     availability.router,
-    prefix="/availability",
+    prefix="/api/v1/availability",
     tags=["Salon Availability"],
 )
 
 # Appointment
 app.include_router(
     appointments.router,
-    prefix="/appointments",
+    prefix="/api/v1/appointments",
     tags=["Appointments"],
 )
 

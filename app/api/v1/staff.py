@@ -205,9 +205,7 @@ async def delete_staff(
                 detail="Staff member not found.",
             )
 
-        return {
-            "message": "Staff deleted successfully!"
-        }
+        return None
 
     except HTTPException:
         raise

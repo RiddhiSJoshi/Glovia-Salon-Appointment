@@ -103,6 +103,19 @@ def require_roles(
         ),
     ) -> User:
 
+        # print("========== ROLE DEBUG ==========")
+        # print("User ID:", current_user.id)
+        # print("Username:", current_user.username)
+        # print("User role:", current_user.role)
+        # print("User role type:", type(current_user.role))
+        # print("UserRole.SALON:", UserRole.SALON)
+        # print("UserRole.SALON value:", UserRole.SALON.value)
+        # print("Allowed roles:", allowed_roles)
+        # print(
+        #     "Role matches:",
+        #     current_user.role in allowed_roles
+        # )
+        # print("================================")
         if current_user.role not in allowed_roles:
 
             raise HTTPException(
